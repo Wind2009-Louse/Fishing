@@ -12,6 +12,10 @@ description = ["事件丸：在没有任何进行中的事件时使用则可立�
 rare_types = {"SSS":0, "SS":1, "S":2, "A":3, "B":4, "C":5, "D":6, "E":7, "F":8,
               "精灵石":9,"卷轴":10,"铜板":11,
               "Z":12}
+All_Zero = [0, 0, 0,
+    0, 0, 0, 0, 0, 0,
+    0, 0, 0,
+    0]
 event_same_as_none = ["爱吃辣的商人","环境污染","环境末日","慷慨的商人","快节奏",
                       "来盘昆特牌吧","皮姆粒子泄漏","淘金热"]
 rob_originname = {"HK416*":"工作钓竿","六花酱の伞*":"精致钓竿",
@@ -24,7 +28,7 @@ nick_haseffect = ["宝贝的","小霞的","瘟疫的","鲫鱼的"]
 AllEffect = []
 # 最终结果，格式为：
 # result[事件][钓竿] = {出现次数1,...,Z}
-results = {"合计":{}}
+results = {"合计":{"合计":All_Zero.copy()}}
 '''
 -1: not saying
 0: saying (without anything)
@@ -115,7 +119,7 @@ if __name__ == '__main__':
                             fullname = re.sub(before, after, fullname)
                         # 检查是否有附魔名，筛掉
                         fullname = re.sub(r'炫耀の', r'', fullname)
-                        nickcheck = re.match("^((?:\+\d+?\ )*)([^的]*的)([\s\S]*)", fullname)
+                        nickcheck = re.match("^((?:\+\d+? )*)([^的]*的)([\s\S]*)", fullname)
                         if nickcheck:
                             # 将强化等级放在钓竿名字后
                             recordname = nickcheck.group(3)+nickcheck.group(1)
@@ -128,28 +132,24 @@ if __name__ == '__main__':
                                 recordname = nickname + recordname
                         else:
                             # 将强化等级放在钓竿名字后
-                            nickcheck = re.match("^((?:\+\d+?\ )*)([\s\S]*)", fullname)
+                            nickcheck = re.match("^((?:\+\d+? )*)([\s\S]*)", fullname)
                             recordname = nickcheck.group(2)+nickcheck.group(1)
 
                         # 检查是否为新事件
                         if current_event_name not in results:
-                            results[current_event_name] = {}
+                            results[current_event_name] = {"合计":All_Zero.copy()}
 
                         # 检查当前钓竿是否在当前事件中有记录
                         if recordname not in results[current_event_name]:
-                            results[current_event_name][recordname] = [0, 0, 0,
-                                             0, 0, 0, 0, 0, 0,
-                                            0, 0, 0,
-                                            0]
+                            results[current_event_name][recordname] = All_Zero.copy()
                         if recordname not in results["合计"]:
-                            results["合计"][recordname] = [0, 0, 0,
-                                             0, 0, 0, 0, 0, 0,
-                                            0, 0, 0,
-                                            0]
+                            results["合计"][recordname] = All_Zero.copy()
 
                         # +1
                         results[current_event_name][recordname][rare_index] += 1
                         results["合计"][recordname][rare_index] += 1
+                        results["合计"]["合计"][rare_index] += 1
+                        results[current_event_name]["合计"][rare_index] += 1
                         print("(%d/%d)" % (current_lines, total_lines),end='\r')
                         #print("(%d/%d)稀有度：%s， 使用：%s(%s)"%(current_lines, total_lines, rare_type, recordname, fullname))
 
