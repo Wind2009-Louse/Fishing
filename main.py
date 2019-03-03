@@ -6,17 +6,25 @@ from functools import reduce
 rin_header = "(\d+?-\d+?-\d+? \d+?:\d+?:\d+)? [^\r\n]+?\(1093578840\)\n"
 saying_1 = "\@[\s\S]* 有结果啦~\n"
 saying_2 = "\#[\s\S]+?稀有度([^，]*)，"
-boom_str = "@可惜爆炸了！"
+boom_str = "[\s\S]*可惜爆炸了！"
 description = ["事件丸：在没有任何进行中的事件时使用则可立刻开始一个事件。\n",
                 "人品宝箱：使用后有一定几率获得或失去铜板，也有可能获得卷轴。\n"]
-AllEffect = []
-
 rare_types = {"SSS":0, "SS":1, "S":2, "A":3, "B":4, "C":5, "D":6, "E":7, "F":8,
               "精灵石":9,"卷轴":10,"铜板":11,
               "Z":12}
+event_same_as_none = ["爱吃辣的商人","环境污染","环境末日","慷慨的商人","快节奏",
+                      "来盘昆特牌吧","皮姆粒子泄漏","淘金热"]
+rob_originname = {"HK416*":"工作钓竿","六花酱の伞*":"精致钓竿",
+                  "普通钓竿":"鱼竿","乌龟钓竿":"鱼竿","工作钓竿":"鱼竿",
+                  "炫耀の竿":"鱼竿","免费钓竿":"鱼竿","周末钓竿":"鱼竿",
+                  "惹是生非钓竿":"鱼竿","皮姆粒子钓竿":"鱼竿","GM钓竿":"鱼竿",
+                  "耐心的钓竿":"鱼竿","传说钩竿":"鱼竿","厨师的锅铲":"厨师の锅铲"}
+nick_haseffect = ["宝贝的","小霞的","瘟疫的","鲫鱼的"]
+
+AllEffect = []
 # 最终结果，格式为：
 # result[事件][钓竿] = {出现次数1,...,Z}
-results = {}
+results = {"合计":{}}
 '''
 -1: not saying
 0: saying (without anything)
@@ -102,7 +110,11 @@ if __name__ == '__main__':
                         fullname = use_check.group(1)
                         # 获取存储名
                         recordname = fullname
+                        # 还原钓竿名
+                        for before, after in rob_originname.items():
+                            fullname = re.sub(before, after, fullname)
                         # 检查是否有附魔名，筛掉
+                        fullname = re.sub(r'炫耀の', r'', fullname)
                         nickcheck = re.match("^((?:\+\d+?\ )*)([^的]*的)([\s\S]*)", fullname)
                         if nickcheck:
                             # 将强化等级放在钓竿名字后
@@ -111,6 +123,9 @@ if __name__ == '__main__':
                             # 登记附魔名
                             if nickname not in AllEffect:
                                 AllEffect.append(nickname)
+                            # 如果是影响稀有率的附魔，重新加回去
+                            if nickname in nick_haseffect:
+                                recordname = nickname + recordname
                         else:
                             # 将强化等级放在钓竿名字后
                             nickcheck = re.match("^((?:\+\d+?\ )*)([\s\S]*)", fullname)
@@ -126,9 +141,15 @@ if __name__ == '__main__':
                                              0, 0, 0, 0, 0, 0,
                                             0, 0, 0,
                                             0]
+                        if recordname not in results["合计"]:
+                            results["合计"][recordname] = [0, 0, 0,
+                                             0, 0, 0, 0, 0, 0,
+                                            0, 0, 0,
+                                            0]
 
                         # +1
                         results[current_event_name][recordname][rare_index] += 1
+                        results["合计"][recordname][rare_index] += 1
                         print("(%d/%d)" % (current_lines, total_lines),end='\r')
                         #print("(%d/%d)稀有度：%s， 使用：%s(%s)"%(current_lines, total_lines, rare_type, recordname, fullname))
 
@@ -166,16 +187,20 @@ if __name__ == '__main__':
                         # 准备读取稀有度
                         rin_stage = 1
                     else:
-                        # 读取事件名、结束时间
+                        # 判断是否为事件开始
                         event_check = re.match("【垂钓事件】开始事件 ([^，]*)，持续时间(\d+)分(\d+)秒！", this_str)
-                        # 设置结束事件
                         if event_check:
+                            # 读取事件名
+                            current_event_name = event_check.group(1)
+                            # 不影响稀有率分布的事件一律归到无
+                            if current_event_name in event_same_as_none:
+                                current_event_name = "无"
+                            # 设置结束时间
                             minute = int(event_check.group(2))
                             second = int(event_check.group(3))
                             event_time = datetime.timedelta(minutes=minute, seconds=second)
                             last_event_time = current_time
                             last_event_time += event_time
-                            current_event_name = event_check.group(1)
                         # 等待下次记录
                         rin_stage = -1
                 # 是否为小玲的记录头
