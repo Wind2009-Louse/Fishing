@@ -29,6 +29,10 @@ AllEffect = []
 # 最终结果，格式为：
 # result[事件][钓竿] = {出现次数1,...,Z}
 results = {"合计":{"合计":All_Zero.copy()}}
+# 卷轴统计，格式为：
+# paper_count[事件][钓竿] = {卷轴名:次数}
+paper_count = {"合计":{"合计":{"合计":0}}}
+paper_initial = {"合计":0}
 '''
 -1: not saying
 0: saying (without anything)
@@ -41,6 +45,8 @@ rin_stage = -1
 # 稀有度
 rare_index = -1
 rare_type = "Z"
+# 卷轴名字
+paper_name = ""
 # 上一次读取是否为空行，用来判断新记录
 last_empty = False
 # 当前读取到的行数
@@ -146,11 +152,43 @@ if __name__ == '__main__':
                             results["合计"][recordname] = All_Zero.copy()
 
                         # +1
-                        results[current_event_name][recordname][rare_index] += 1
-                        results["合计"][recordname][rare_index] += 1
                         results["合计"]["合计"][rare_index] += 1
+                        results["合计"][recordname][rare_index] += 1
                         results[current_event_name]["合计"][rare_index] += 1
-                        print("(%d/%d)" % (current_lines, total_lines),end='\r')
+                        results[current_event_name][recordname][rare_index] += 1
+
+                        # 卷轴
+                        # 初始化
+                        if current_event_name not in paper_count:
+                            paper_count[current_event_name] = {"合计": {"合计": 0}}
+
+                        if recordname not in paper_count["合计"]:
+                            paper_count["合计"][recordname] = {"合计": 0}
+                        if recordname not in paper_count[current_event_name]:
+                            paper_count[current_event_name][recordname] = {"合计": 0}
+
+                        # 添加
+                        if paper_name != "":
+                            if paper_name not in paper_count["合计"]["合计"]:
+                                paper_count["合计"]["合计"][paper_name] = 0
+                            if paper_name not in paper_count["合计"][recordname]:
+                                paper_count["合计"][recordname][paper_name] = 0
+
+                            if paper_name not in paper_count[current_event_name]["合计"]:
+                                paper_count[current_event_name]["合计"][paper_name] = 0
+                            if paper_name not in paper_count[current_event_name][recordname]:
+                                paper_count[current_event_name][recordname][paper_name] = 0
+
+                            paper_count["合计"]["合计"]["合计"] += 1
+                            paper_count["合计"]["合计"][paper_name] += 1
+                            paper_count["合计"][recordname]["合计"] += 1
+                            paper_count["合计"][recordname][paper_name] += 1
+                            paper_count[current_event_name]["合计"]["合计"] += 1
+                            paper_count[current_event_name]["合计"][paper_name] += 1
+                            paper_count[current_event_name][recordname]["合计"] += 1
+                            paper_count[current_event_name][recordname][paper_name] += 1
+
+                        print("(%d/%d)" % (current_lines, total_lines), end='\r')
                         #print("(%d/%d)稀有度：%s， 使用：%s(%s)"%(current_lines, total_lines, rare_type, recordname, fullname))
 
                 # 用时、物品说明
@@ -159,6 +197,7 @@ if __name__ == '__main__':
                     # 不为物品说明，则准备读取钓竿名
                     if this_str not in description:
                         rin_stage += 1
+
                 # 内容（得到稀有度）
                 if rin_stage == 1:
                     rin_stage += 1
@@ -169,16 +208,20 @@ if __name__ == '__main__':
                         rare_type = rare_check.group(1)
                     # 检查是否为特殊物品(类型、check说明)
                     special_part = {"卷轴":"卷轴","精灵石":"个精灵石","铜板":"个铜板"}
+                    paper_name = ""
                     for key, value in special_part.items():
-                        special_check = re.match("钓到[\s\S]+?%s！"%value, this_str)
+                        special_check = re.match("钓到([\s\S]+?)%s！"%value, this_str)
                         if special_check:
                             rare_type = key
+                            if key=="卷轴":
+                                paper_name = special_check.group(1)
                     # 爆炸判断
                     boom_check = re.match(boom_str, this_str)
                     if boom_check:
                         rare_type = "Z"
                     # 根据稀有类型读取index
                     rare_index = rare_types[rare_type]
+
                 # 提示（上钩提示、事件提示）
                 if rin_stage == 0:
                     # 判断是否为钓鱼
@@ -273,3 +316,31 @@ if __name__ == '__main__':
         output_total_count.close()
         output_rare_cent.close()
         output_upper_rare.close()
+
+        # 输出卷轴记录
+        try:
+            output_papers = open(os.path.join(event_dir,"papers.csv"), "w")
+        except:
+            print("无法写记录，可能文件被占用。")
+            input("回车退出。")
+            raise
+        # 写文件头
+        all_paper = paper_count[event_name]["合计"].keys()
+        output_papers.write("钓竿,")
+        for output_name in all_paper:
+            output_papers.write("%s,"%output_name)
+        output_papers.write("\n")
+        # 读取每个钓竿的数据
+        for rod_name in sorted(paper_count[event_name].keys()):
+            output_papers.write(rod_name+",")
+            # 输出每种卷轴
+            for each_paper in all_paper:
+                if each_paper not in paper_count[event_name][rod_name]:
+                    print_count = 0
+                else:
+                    print_count = paper_count[event_name][rod_name][each_paper]
+                output_papers.write("%d,"%print_count)
+            # 换行
+            output_papers.write("\n")
+        # 输出结束，关闭文件
+        output_papers.close()
