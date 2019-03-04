@@ -18,7 +18,6 @@ All_Zero = [0, 0, 0,
     0]
 event_same_as_none = ["爱吃辣的商人","环境污染","环境末日","慷慨的商人","快节奏",
                       "来盘昆特牌吧","皮姆粒子泄漏","淘金热"]
-rob_originname = {"HK416*":"工作钓竿","六花酱の伞*":"精致钓竿",
                   "普通钓竿":"鱼竿","乌龟钓竿":"鱼竿","工作钓竿":"鱼竿",
                   "炫耀の竿":"鱼竿","免费钓竿":"鱼竿","周末钓竿":"鱼竿",
                   "惹是生非钓竿":"鱼竿","皮姆粒子钓竿":"鱼竿","GM钓竿":"鱼竿",
@@ -140,7 +139,6 @@ if __name__ == '__main__':
                             # 将强化等级放在钓竿名字后
                             nickcheck = re.match("^((?:\+\d+? )*)([\s\S]*)", fullname)
                             recordname = nickcheck.group(2)+nickcheck.group(1)
-
                         # 检查是否为新事件
                         if current_event_name not in results:
                             results[current_event_name] = {"合计":All_Zero.copy()}
@@ -273,14 +271,11 @@ if __name__ == '__main__':
 
     # 每个事件单独一个文件夹
     for event_name in results:
-        event_dir = os.path.join(output_dir, event_name)
-        if not os.path.exists(event_dir):
-            os.mkdir(event_dir)
         # 打开三个文件，分别输出总数、各稀有度概率、以上稀有度概率
         try:
-            output_total_count = open(os.path.join(event_dir,"output_total.csv"), "w")
-            output_rare_cent = open(os.path.join(event_dir,"output_cent.csv"), "w")
-            output_upper_rare = open(os.path.join(event_dir,"output_upper.csv"), "w")
+            output_total_count = open(os.path.join(output_dir,"%s_total.csv"%event_name), "w")
+            output_rare_cent = open(os.path.join(output_dir,"%s_cent.csv"%event_name), "w")
+            output_upper_rare = open(os.path.join(output_dir,"%s_upper.csv"%event_name), "w")
         except:
             print("无法写记录，可能文件被占用。")
             input("回车退出。")
@@ -319,7 +314,7 @@ if __name__ == '__main__':
 
         # 输出卷轴记录
         try:
-            output_papers = open(os.path.join(event_dir,"papers.csv"), "w")
+            output_papers = open(os.path.join(output_dir,"%s_papers.csv"%event_name), "w")
         except:
             print("无法写记录，可能文件被占用。")
             input("回车退出。")
